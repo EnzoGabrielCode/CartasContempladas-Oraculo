@@ -1,7 +1,7 @@
 :root {
-  --azul: #0f2a4a;
-  --azul-2: #1b3f6b;
-  --dourado: #c9a227;
+  --azul: #192b37;
+  --azul-2: #24435a;
+  --dourado: #f2a951;
   --fundo: #f4f6f9;
   --texto: #1d2330;
   --cinza: #6b7385;
@@ -20,7 +20,10 @@ a { color: inherit; }
 header.topo { background: var(--azul); color: #fff; }
 header.topo .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; }
 .marca { font-weight: 800; font-size: 1.15rem; letter-spacing: .3px; }
-.marca span { color: var(--dourado); }
+.marca { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; }
+.logo-topo { height: 46px; width: auto; display: block; }
+.tag-admin { background: var(--dourado); color: var(--azul); font-size: .72rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: .5px; }
+@media (max-width: 480px) { .logo-topo { height: 34px; } .tag-admin { display: none; } .esq { gap: 10px; } }
 .wrap { max-width: 1180px; margin: 0 auto; }
 
 .hero { background: linear-gradient(135deg, var(--azul) 0%, var(--azul-2) 100%); color: #fff; padding: 28px 20px 70px; }
@@ -28,7 +31,7 @@ header.topo .wrap { display: flex; align-items: center; justify-content: space-b
 .hero p { margin: 0; opacity: .85; }
 
 .painel { margin: -48px auto 40px; padding: 0 16px; }
-.caixa { background: #fff; border-radius: var(--raio); box-shadow: 0 6px 24px rgba(15, 42, 74, .08); padding: 18px; }
+.caixa { background: #fff; border-radius: var(--raio); box-shadow: 0 6px 24px rgba(25, 43, 55, .08); padding: 18px; }
 
 .filtros { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
 .abas { display: flex; background: var(--fundo); border-radius: 999px; padding: 4px; }
@@ -93,7 +96,7 @@ label { display: block; font-size: .8rem; font-weight: 600; color: var(--cinza);
 .acoes { display: flex; gap: 6px; }
 
 dialog { border: 0; border-radius: var(--raio); padding: 0; width: min(640px, 94vw); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
-dialog::backdrop { background: rgba(15, 42, 74, .45); }
+dialog::backdrop { background: rgba(25, 43, 55, .45); }
 dialog form { padding: 20px; }
 dialog h3 { margin: 0 0 6px; }
 .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
