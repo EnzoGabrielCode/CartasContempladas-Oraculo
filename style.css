@@ -102,10 +102,10 @@ dialog h3 { margin: 0 0 6px; }
 
 /* Logos das administradoras */
 .adm { display: inline-flex; align-items: center; gap: 10px; }
-.logo-adm { width: 64px; height: 28px; object-fit: contain; flex-shrink: 0; }
-.logo-adm.sem-logo { width: 28px; border-radius: 50%; background: #e8eef7; color: var(--azul-2); font-size: .7rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
-.card .card-logo .logo-adm { width: 90px; height: 32px; }
-.card .card-logo .logo-adm.sem-logo { width: 32px; }
+.logo-adm { width: 96px; height: 38px; object-fit: contain; object-position: left center; flex-shrink: 0; }
+.logo-adm.sem-logo { width: 38px; border-radius: 50%; background: #e8eef7; color: var(--azul-2); font-size: .7rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+.card .card-logo .logo-adm { width: 130px; height: 56px; object-position: right center; }
+.card .card-logo .logo-adm.sem-logo { width: 48px; height: 48px; font-size: .9rem; }
 .card .linha1 .esq-card { display: flex; flex-direction: column; gap: 6px; }
 
 /* Admin: abas e administradoras */
@@ -119,10 +119,10 @@ dialog h3 { margin: 0 0 6px; }
 .preview-logo img { max-width: 110px; max-height: 40px; object-fit: contain; }
 .grade-adms { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .item-adm { border: 1px solid var(--borda); border-radius: var(--raio); padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
-.item-adm .logo-adm { width: 140px; height: 56px; }
+.item-adm .logo-adm { width: 160px; height: 64px; object-position: center; }
 .item-adm .logo-adm.sem-logo { width: 56px; font-size: 1rem; }
 .item-adm .nome { font-weight: 700; }
 .item-adm .acoes { justify-content: center; }
 .seletor-adm { display: flex; align-items: center; gap: 10px; }
 .seletor-adm select { flex: 1; }
-.seletor-adm .logo-adm { width: 70px; height: 32px; }
+.seletor-adm .logo-adm { width: 100px; height: 42px; }
