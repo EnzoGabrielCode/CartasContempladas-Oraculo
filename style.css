@@ -12,6 +12,8 @@
   --raio: 12px;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.esq { display: flex; align-items: center; gap: 16px; }
 body { margin: 0; font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: var(--fundo); color: var(--texto); }
 a { color: inherit; }
 
