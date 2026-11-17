@@ -69,6 +69,7 @@
   <script>
     const cfg = window.APP_CONFIG;
     let cartas = [];
+    let adms = {};
     let segmento = new URLSearchParams(location.search).get("segmento") || "todos";
 
     document.getElementById("avisoDemo").hidden = !DB.demo;
@@ -111,7 +112,7 @@
           <td class="num">${esc(c.parcelas)}</td>
           <td class="num">${fmtBRL(c.valor_parcela)}</td>
           <td class="num">${fmtBRL(c.saldo_devedor)}</td>
-          <td>${esc(c.administradora)}</td>
+          <td>${admHTML(c.administradora, adms)}</td>
           <td><span class="badge ${c.status}">${STATUS[c.status]}</span></td>
           <td>${botaoZap(c)}</td>
         </tr>`).join("");
@@ -119,8 +120,11 @@
       document.getElementById("cards").innerHTML = lista.map(c => `
         <div class="card">
           <div class="linha1">
-            <span class="badge cat">${CATEGORIAS[c.categoria]} · Cód. ${esc(c.codigo)}</span>
-            <span class="badge ${c.status}">${STATUS[c.status]}</span>
+            <div class="esq-card">
+              <span class="badge cat">${CATEGORIAS[c.categoria]} · Cód. ${esc(c.codigo)}</span>
+              <span class="badge ${c.status}" style="align-self:flex-start">${STATUS[c.status]}</span>
+            </div>
+            <span class="card-logo">${admHTML(c.administradora, adms, { soLogo: true })}</span>
           </div>
           <div class="credito">${fmtBRL(c.credito)}</div>
           <dl>
@@ -144,8 +148,8 @@
     document.getElementById("ordem").addEventListener("change", render);
     document.querySelectorAll("#abas button").forEach(x => x.classList.toggle("ativo", x.dataset.seg === segmento));
 
-    DB.listar({ publico: true })
-      .then(d => { cartas = d; render(); })
+    Promise.all([DB.listar({ publico: true }), DB.listarAdms().catch(() => [])])
+      .then(([d, a]) => { cartas = d; adms = mapaAdms(a); render(); })
       .catch(() => { document.getElementById("vazio").hidden = false; document.getElementById("vazio").textContent = "Não foi possível carregar as cartas agora."; });
   </script>
 </body>

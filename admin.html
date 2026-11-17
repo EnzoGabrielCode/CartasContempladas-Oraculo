@@ -38,8 +38,13 @@
   <!-- PAINEL -->
   <main id="telaPainel" class="wrap" style="padding:20px 16px" hidden>
     <div class="caixa">
+      <div class="abas-admin" id="abasAdmin">
+        <button data-aba="cartas" class="ativo">Cartas</button>
+        <button data-aba="adms">Administradoras</button>
+      </div>
+
+      <section id="abaCartas">
       <div class="filtros">
-        <h2 style="margin:0">Cartas</h2>
         <input id="busca" class="cresce" type="search" placeholder="Buscar código ou administradora">
         <select id="fStatus">
           <option value="">Todos status</option>
@@ -58,6 +63,20 @@
         </table>
       </div>
       <div class="vazio" id="vazio" hidden>Nenhuma carta cadastrada.</div>
+      </section>
+
+      <section id="abaAdms" hidden>
+        <form class="form-adm" id="formAdm">
+          <input type="hidden" name="id">
+          <div><label>Nome da administradora</label><input class="campo" name="nome" required placeholder="Ex.: CNP Embracon"></div>
+          <div><label>Logo (PNG, JPG, WEBP ou SVG)</label><input class="campo" name="logo" type="file" accept="image/*"></div>
+          <div class="preview-logo" id="previewLogo">sem logo</div>
+          <button class="btn btn-azul" id="btnSalvarAdm" style="padding:11px 16px">Adicionar</button>
+          <button type="button" class="btn btn-claro" id="cancelarAdm" style="padding:11px 16px" hidden>Cancelar</button>
+        </form>
+        <div class="erro" id="erroAdm"></div>
+        <div class="grade-adms" id="gradeAdms"></div>
+      </section>
     </div>
   </main>
 
@@ -82,8 +101,12 @@
         <div><label>Nº de parcelas</label><input class="campo" name="parcelas" type="number" min="0" required></div>
         <div><label>Valor da parcela (R$)</label><input class="campo" name="valor_parcela" inputmode="decimal" required></div>
         <div><label>Saldo devedor (R$)</label><input class="campo" name="saldo_devedor" inputmode="decimal" placeholder="Em branco = parcelas × valor"></div>
-        <div><label>Administradora</label><input class="campo" name="administradora" list="adms" required>
-          <datalist id="adms"><option>Caixa</option><option>Itaú</option><option>Bradesco</option><option>Santander</option><option>Porto Seguro</option><option>CNP Embracon</option><option>Rodobens</option><option>Ademicon</option><option>HS Consórcios</option><option>MyCon</option></datalist></div>
+        <div style="grid-column:1/-1"><label>Administradora</label>
+          <div class="seletor-adm">
+            <select class="campo" name="administradora" id="selAdm" required></select>
+            <span id="selAdmLogo"></span>
+          </div>
+        </div>
         <div><label>Grupo</label><input class="campo" name="grupo"></div>
       </div>
       <div class="erro" id="erroForm"></div>
@@ -100,6 +123,8 @@
   <script>
     const $ = (id) => document.getElementById(id);
     let cartas = [];
+    let adms = [];
+    let mapa = {};
     $("avisoDemo").hidden = !DB.demo;
 
     // aceita "250.000,00", "250000", "250000.50"
@@ -118,7 +143,11 @@
     }
 
     async function carregar() {
-      try { cartas = await DB.listar(); render(); }
+      try {
+        [cartas, adms] = await Promise.all([DB.listar(), DB.listarAdms()]);
+        mapa = mapaAdms(adms);
+        render(); renderAdms();
+      }
       catch (e) { alertaErro(e); }
     }
 
@@ -136,7 +165,7 @@
           <td class="num">${fmtBRL(c.credito)}</td>
           <td class="num">${fmtBRL(c.entrada)}</td>
           <td class="num">${esc(c.parcelas)}x ${fmtBRL(c.valor_parcela)}</td>
-          <td>${esc(c.administradora)}</td>
+          <td>${admHTML(c.administradora, mapa)}</td>
           <td>
             <select data-status="${c.id}" class="badge ${c.status}" style="border:0;cursor:pointer">
               ${Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${k === c.status ? "selected" : ""}>${v}</option>`).join("")}
@@ -154,8 +183,46 @@
       f.reset();
       $("erroForm").textContent = "";
       $("dlgTitulo").textContent = c ? `Editar carta ${c.codigo}` : "Nova carta";
+      // monta a lista de administradoras (inclui a da carta, se não estiver cadastrada)
+      const nomes = adms.map(a => a.nome);
+      if (c && c.administradora && !nomes.includes(c.administradora)) nomes.push(c.administradora);
+      $("selAdm").innerHTML = `<option value="" disabled selected>Selecione…</option>` +
+        nomes.map(n => `<option>${esc(n)}</option>`).join("");
       if (c) for (const [k, v] of Object.entries(c)) if (f.elements[k]) f.elements[k].value = v ?? "";
+      logoSelecionada();
       $("dlg").showModal();
+    }
+
+    function logoSelecionada() {
+      const v = $("selAdm").value;
+      $("selAdmLogo").innerHTML = v ? admHTML(v, mapa, { soLogo: true }) : "";
+    }
+
+    // ---------- Administradoras ----------
+    function renderAdms() {
+      $("gradeAdms").innerHTML = adms.map(a => {
+        const usadas = cartas.filter(c => c.administradora === a.nome).length;
+        return `
+        <div class="item-adm">
+          ${admHTML(a.nome, mapa, { soLogo: true })}
+          <div class="nome">${esc(a.nome)}</div>
+          <small style="color:var(--cinza)">${usadas} carta${usadas === 1 ? "" : "s"}</small>
+          <div class="acoes">
+            <button class="btn btn-claro" data-editar-adm="${a.id}">Editar</button>
+            <button class="btn btn-perigo" data-excluir-adm="${a.id}">Excluir</button>
+          </div>
+        </div>`;
+      }).join("") || `<div class="vazio">Nenhuma administradora cadastrada.</div>`;
+    }
+
+    let logoAtual = "";
+    function limparFormAdm() {
+      const f = $("formAdm");
+      f.reset(); f.elements.id.value = ""; logoAtual = "";
+      $("previewLogo").textContent = "sem logo";
+      $("btnSalvarAdm").textContent = "Adicionar";
+      $("cancelarAdm").hidden = true;
+      $("erroAdm").textContent = "";
     }
 
     function alertaErro(e) { console.error(e); window.alert?.("Erro: " + (e.message || e)); }
@@ -171,6 +238,76 @@
     $("nova").addEventListener("click", () => abrir(null));
     $("cancelar").addEventListener("click", () => $("dlg").close());
     $("busca").addEventListener("input", render);
+    $("selAdm").addEventListener("change", logoSelecionada);
+
+    $("abasAdmin").addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      document.querySelectorAll("#abasAdmin button").forEach(x => x.classList.toggle("ativo", x === b));
+      $("abaCartas").hidden = b.dataset.aba !== "cartas";
+      $("abaAdms").hidden = b.dataset.aba !== "adms";
+    });
+
+    $("formAdm").elements.logo.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      $("previewLogo").innerHTML = file ? `<img src="${URL.createObjectURL(file)}" alt="">` : (logoAtual ? `<img src="${esc(logoAtual)}" alt="">` : "sem logo");
+    });
+    $("cancelarAdm").addEventListener("click", limparFormAdm);
+
+    $("formAdm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = e.target.elements;
+      const btn = $("btnSalvarAdm");
+      $("erroAdm").textContent = "";
+      btn.disabled = true; btn.textContent = "Salvando…";
+      try {
+        const id = f.id.value ? Number(f.id.value) : null;
+        const nome = f.nome.value.trim();
+        const antigo = id ? adms.find(a => a.id === id) : null;
+        let logo_url = logoAtual;
+        if (f.logo.files[0]) logo_url = await DB.enviarLogo(f.logo.files[0]);
+        await DB.salvarAdm({ ...(id ? { id } : {}), nome, logo_url });
+        // se renomeou, atualiza as cartas que usavam o nome antigo
+        if (antigo && antigo.nome !== nome) {
+          for (const c of cartas.filter(c => c.administradora === antigo.nome)) await DB.salvar({ ...c, administradora: nome });
+        }
+        limparFormAdm();
+        await carregar();
+      } catch (err) {
+        $("erroAdm").textContent = "Erro: " + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = $("formAdm").elements.id.value ? "Salvar" : "Adicionar";
+      }
+    });
+
+    $("gradeAdms").addEventListener("click", async (e) => {
+      const ed = e.target.dataset.editarAdm, ex = e.target.dataset.excluirAdm;
+      if (ed) {
+        const a = adms.find(a => a.id == ed);
+        const f = $("formAdm");
+        f.elements.id.value = a.id; f.elements.nome.value = a.nome; f.elements.logo.value = "";
+        logoAtual = a.logo_url || "";
+        $("previewLogo").innerHTML = logoAtual ? `<img src="${esc(logoAtual)}" alt="">` : "sem logo";
+        $("btnSalvarAdm").textContent = "Salvar";
+        $("cancelarAdm").hidden = false;
+        f.scrollIntoView({ behavior: "smooth", block: "center" });
+        f.elements.nome.focus();
+      }
+      if (ex) {
+        const a = adms.find(a => a.id == ex);
+        if (cartas.some(c => c.administradora === a.nome)) {
+          $("erroAdm").textContent = `Não dá pra excluir "${a.nome}": ainda tem cartas usando essa administradora.`;
+          return;
+        }
+        const b = e.target;
+        if (b.dataset.confirmar !== "1") {
+          b.dataset.confirmar = "1"; b.textContent = "Confirmar?";
+          setTimeout(() => { b.dataset.confirmar = ""; b.textContent = "Excluir"; }, 3000);
+          return;
+        }
+        try { await DB.excluirAdm(a.id); carregar(); } catch (err) { $("erroAdm").textContent = "Erro: " + err.message; }
+      }
+    });
     $("fStatus").addEventListener("change", render);
 
     $("formCarta").addEventListener("submit", async (e) => {
