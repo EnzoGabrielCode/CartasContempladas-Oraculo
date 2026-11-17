@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Admin | Cartas Contempladas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="avisoDemo" class="aviso-demo" hidden>Modo demonstração — senha: <b>demo</b></div>
+  <header class="topo">
+    <div class="wrap">
+      <div class="marca">Oráculo <span>Admin</span></div>
+      <div class="acoes" id="topoAcoes" hidden>
+        <a class="btn btn-claro" href="index.html" target="_blank">Ver site</a>
+        <button class="btn btn-dourado" id="sair">Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- LOGIN -->
+  <section id="telaLogin" class="login caixa" hidden>
+    <h2>Entrar</h2>
+    <form id="formLogin">
+      <label for="email">E-mail</label>
+      <input class="campo" id="email" type="email" autocomplete="username" required>
+      <label for="senha">Senha</label>
+      <input class="campo" id="senha" type="password" autocomplete="current-password" required>
+      <div class="erro" id="erroLogin"></div>
+      <button class="btn btn-azul" style="width:100%;justify-content:center;padding:12px;margin-top:6px">Entrar</button>
+    </form>
+  </section>
+
+  <!-- PAINEL -->
+  <main id="telaPainel" class="wrap" style="padding:20px 16px" hidden>
+    <div class="caixa">
+      <div class="filtros">
+        <h2 style="margin:0">Cartas</h2>
+        <input id="busca" class="cresce" type="search" placeholder="Buscar código ou administradora">
+        <select id="fStatus">
+          <option value="">Todos status</option>
+          <option value="disponivel">Disponível</option>
+          <option value="reservada">Reservada</option>
+          <option value="vendida">Vendida</option>
+        </select>
+        <button class="btn btn-azul" id="nova">+ Nova carta</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr><th>Cód.</th><th>Cat.</th><th class="num">Crédito</th><th class="num">Entrada</th><th class="num">Parcelas</th><th>Administradora</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="vazio" id="vazio" hidden>Nenhuma carta cadastrada.</div>
+    </div>
+  </main>
+
+  <!-- FORMULÁRIO -->
+  <dialog id="dlg">
+    <form id="formCarta" method="dialog">
+      <h3 id="dlgTitulo">Nova carta</h3>
+      <input type="hidden" name="id">
+      <div class="grade">
+        <div><label>Código</label><input class="campo" name="codigo" required></div>
+        <div><label>Cota</label><input class="campo" name="cota"></div>
+        <div><label>Categoria</label>
+          <select class="campo" name="categoria" required>
+            <option value="imovel">Imóvel</option><option value="veiculo">Veículo</option>
+          </select></div>
+        <div><label>Status</label>
+          <select class="campo" name="status">
+            <option value="disponivel">Disponível</option><option value="reservada">Reservada</option><option value="vendida">Vendida (some do site)</option>
+          </select></div>
+        <div><label>Crédito (R$)</label><input class="campo" name="credito" inputmode="decimal" required></div>
+        <div><label>Entrada (R$)</label><input class="campo" name="entrada" inputmode="decimal" required></div>
+        <div><label>Nº de parcelas</label><input class="campo" name="parcelas" type="number" min="0" required></div>
+        <div><label>Valor da parcela (R$)</label><input class="campo" name="valor_parcela" inputmode="decimal" required></div>
+        <div><label>Saldo devedor (R$)</label><input class="campo" name="saldo_devedor" inputmode="decimal" placeholder="Em branco = parcelas × valor"></div>
+        <div><label>Administradora</label><input class="campo" name="administradora" list="adms" required>
+          <datalist id="adms"><option>Caixa</option><option>Itaú</option><option>Bradesco</option><option>Santander</option><option>Porto Seguro</option><option>CNP Embracon</option><option>Rodobens</option><option>Ademicon</option><option>HS Consórcios</option><option>MyCon</option></datalist></div>
+        <div><label>Grupo</label><input class="campo" name="grupo"></div>
+      </div>
+      <div class="erro" id="erroForm"></div>
+      <div class="rodape-dialog">
+        <button type="button" class="btn btn-claro" id="cancelar">Cancelar</button>
+        <button type="submit" class="btn btn-azul" value="salvar">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="db.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let cartas = [];
+    $("avisoDemo").hidden = !DB.demo;
+
+    // aceita "250.000,00", "250000", "250000.50"
+    const num = (v) => {
+      v = String(v || "").trim().replace(/[R$\s]/g, "");
+      if (v.includes(",")) v = v.replace(/\./g, "").replace(",", ".");
+      return Number(v) || 0;
+    };
+
+    async function mostrar() {
+      const ok = await DB.logado();
+      $("telaLogin").hidden = ok;
+      $("telaPainel").hidden = !ok;
+      $("topoAcoes").hidden = !ok;
+      if (ok) carregar();
+    }
+
+    async function carregar() {
+      try { cartas = await DB.listar(); render(); }
+      catch (e) { alertaErro(e); }
+    }
+
+    function render() {
+      const termo = $("busca").value.trim().toLowerCase();
+      const st = $("fStatus").value;
+      const lista = cartas
+        .filter(c => !st || c.status === st)
+        .filter(c => !termo || String(c.codigo).toLowerCase().includes(termo) || String(c.administradora).toLowerCase().includes(termo));
+      $("vazio").hidden = lista.length > 0;
+      $("tbody").innerHTML = lista.map(c => `
+        <tr>
+          <td class="forte">${esc(c.codigo)}</td>
+          <td>${CATEGORIAS[c.categoria]}</td>
+          <td class="num">${fmtBRL(c.credito)}</td>
+          <td class="num">${fmtBRL(c.entrada)}</td>
+          <td class="num">${esc(c.parcelas)}x ${fmtBRL(c.valor_parcela)}</td>
+          <td>${esc(c.administradora)}</td>
+          <td>
+            <select data-status="${c.id}" class="badge ${c.status}" style="border:0;cursor:pointer">
+              ${Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${k === c.status ? "selected" : ""}>${v}</option>`).join("")}
+            </select>
+          </td>
+          <td class="acoes">
+            <button class="btn btn-claro" data-editar="${c.id}">Editar</button>
+            <button class="btn btn-perigo" data-excluir="${c.id}">Excluir</button>
+          </td>
+        </tr>`).join("");
+    }
+
+    function abrir(c) {
+      const f = $("formCarta");
+      f.reset();
+      $("erroForm").textContent = "";
+      $("dlgTitulo").textContent = c ? `Editar carta ${c.codigo}` : "Nova carta";
+      if (c) for (const [k, v] of Object.entries(c)) if (f.elements[k]) f.elements[k].value = v ?? "";
+      $("dlg").showModal();
+    }
+
+    function alertaErro(e) { console.error(e); window.alert?.("Erro: " + (e.message || e)); }
+
+    // Eventos
+    $("formLogin").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      $("erroLogin").textContent = "";
+      try { await DB.login($("email").value, $("senha").value); mostrar(); }
+      catch (err) { $("erroLogin").textContent = err.message; }
+    });
+    $("sair").addEventListener("click", async () => { await DB.logout(); mostrar(); });
+    $("nova").addEventListener("click", () => abrir(null));
+    $("cancelar").addEventListener("click", () => $("dlg").close());
+    $("busca").addEventListener("input", render);
+    $("fStatus").addEventListener("change", render);
+
+    $("formCarta").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = e.target.elements;
+      const parcelas = parseInt(f.parcelas.value) || 0;
+      const valor_parcela = num(f.valor_parcela.value);
+      const carta = {
+        codigo: f.codigo.value.trim(),
+        cota: f.cota.value.trim(),
+        categoria: f.categoria.value,
+        status: f.status.value,
+        credito: num(f.credito.value),
+        entrada: num(f.entrada.value),
+        parcelas,
+        valor_parcela,
+        saldo_devedor: f.saldo_devedor.value.trim() ? num(f.saldo_devedor.value) : +(parcelas * valor_parcela).toFixed(2),
+        administradora: f.administradora.value.trim(),
+        grupo: f.grupo.value.trim()
+      };
+      if (f.id.value) carta.id = Number(f.id.value);
+      try { await DB.salvar(carta); $("dlg").close(); carregar(); }
+      catch (err) { $("erroForm").textContent = "Erro ao salvar: " + err.message; }
+    });
+
+    $("tbody").addEventListener("click", async (e) => {
+      const ed = e.target.dataset.editar, ex = e.target.dataset.excluir;
+      if (ed) abrir(cartas.find(c => c.id == ed));
+      if (ex) {
+        // confirmação em 2 cliques (sem pop-up do navegador)
+        const b = e.target;
+        if (b.dataset.confirmar !== "1") {
+          b.dataset.confirmar = "1"; b.textContent = "Confirmar?";
+          setTimeout(() => { b.dataset.confirmar = ""; b.textContent = "Excluir"; }, 3000);
+          return;
+        }
+        try { await DB.excluir(Number(ex)); carregar(); } catch (err) { alertaErro(err); }
+      }
+    });
+
+    $("tbody").addEventListener("change", async (e) => {
+      const id = e.target.dataset.status; if (!id) return;
+      const c = cartas.find(c => c.id == id);
+      try { await DB.salvar({ ...c, status: e.target.value }); carregar(); } catch (err) { alertaErro(err); }
+    });
+
+    mostrar();
+  </script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cartas Contempladas</title>
+  <meta name="description" content="Cartas de consórcio contempladas de imóvel e veículo disponíveis.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="avisoDemo" class="aviso-demo" hidden>Modo demonstração — configure o Supabase em config.js</div>
+  <header class="topo">
+    <div class="wrap">
+      <div class="marca" id="marca">Oráculo <span>Contempladas</span></div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="wrap">
+      <h1>Cartas contempladas</h1>
+      <p>Crédito liberado para imóvel ou veículo. Escolha um segmento e fale com a gente.</p>
+    </div>
+  </section>
+
+  <main class="painel wrap">
+    <div class="caixa">
+      <div class="filtros">
+        <div class="abas" id="abas">
+          <button data-seg="todos" class="ativo">Todas</button>
+          <button data-seg="imovel">Imóvel</button>
+          <button data-seg="veiculo">Veículo</button>
+        </div>
+        <input id="busca" class="cresce" type="search" placeholder="Buscar por código ou administradora">
+        <select id="ordem">
+          <option value="credito-asc">Menor crédito</option>
+          <option value="credito-desc">Maior crédito</option>
+          <option value="entrada-asc">Menor entrada</option>
+          <option value="parcela-asc">Menor parcela</option>
+        </select>
+        <span class="contagem" id="contagem"></span>
+      </div>
+
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Cód.</th><th>Categoria</th><th class="num">Crédito</th><th class="num">Entrada</th>
+              <th class="num">Parcelas</th><th class="num">Vlr parcela</th><th class="num">Saldo devedor</th>
+              <th>Administradora</th><th>Status</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="cards" id="cards"></div>
+      <div class="vazio" id="vazio" hidden>Nenhuma carta encontrada.</div>
+    </div>
+  </main>
+
+  <footer id="rodape"></footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="db.js"></script>
+  <script>
+    const cfg = window.APP_CONFIG;
+    let cartas = [];
+    let segmento = new URLSearchParams(location.search).get("segmento") || "todos";
+
+    document.getElementById("avisoDemo").hidden = !DB.demo;
+    document.getElementById("rodape").textContent = `© ${new Date().getFullYear()} ${cfg.EMPRESA}`;
+    document.title = `Cartas Contempladas | ${cfg.EMPRESA}`;
+
+    function linkZap(c) {
+      const msg = cfg.MENSAGEM_WHATSAPP
+        .replace("{codigo}", c.codigo)
+        .replace("{categoria}", CATEGORIAS[c.categoria])
+        .replace("{credito}", fmtBRL(c.credito));
+      return `https://wa.me/${cfg.WHATSAPP}?text=${encodeURIComponent(msg)}`;
+    }
+
+    function botaoZap(c) {
+      const off = c.status !== "disponivel";
+      return `<a class="btn btn-zap" href="${off ? "#" : linkZap(c)}" target="_blank" rel="noopener" aria-disabled="${off}">
+        ${off ? "Reservada" : "Tenho interesse"}</a>`;
+    }
+
+    function render() {
+      const termo = document.getElementById("busca").value.trim().toLowerCase();
+      const [campo, dir] = document.getElementById("ordem").value.split("-");
+      const chave = { credito: "credito", entrada: "entrada", parcela: "valor_parcela" }[campo];
+
+      const lista = cartas
+        .filter(c => segmento === "todos" || c.categoria === segmento)
+        .filter(c => !termo || String(c.codigo).toLowerCase().includes(termo) || String(c.administradora).toLowerCase().includes(termo))
+        .sort((a, b) => (Number(a[chave]) - Number(b[chave])) * (dir === "desc" ? -1 : 1));
+
+      document.getElementById("contagem").textContent = `${lista.length} carta${lista.length === 1 ? "" : "s"}`;
+      document.getElementById("vazio").hidden = lista.length > 0;
+
+      document.getElementById("tbody").innerHTML = lista.map(c => `
+        <tr>
+          <td class="forte">${esc(c.codigo)}</td>
+          <td><span class="badge cat">${CATEGORIAS[c.categoria]}</span></td>
+          <td class="num forte">${fmtBRL(c.credito)}</td>
+          <td class="num">${fmtBRL(c.entrada)}</td>
+          <td class="num">${esc(c.parcelas)}</td>
+          <td class="num">${fmtBRL(c.valor_parcela)}</td>
+          <td class="num">${fmtBRL(c.saldo_devedor)}</td>
+          <td>${esc(c.administradora)}</td>
+          <td><span class="badge ${c.status}">${STATUS[c.status]}</span></td>
+          <td>${botaoZap(c)}</td>
+        </tr>`).join("");
+
+      document.getElementById("cards").innerHTML = lista.map(c => `
+        <div class="card">
+          <div class="linha1">
+            <span class="badge cat">${CATEGORIAS[c.categoria]} · Cód. ${esc(c.codigo)}</span>
+            <span class="badge ${c.status}">${STATUS[c.status]}</span>
+          </div>
+          <div class="credito">${fmtBRL(c.credito)}</div>
+          <dl>
+            <div><dt>Entrada</dt><dd>${fmtBRL(c.entrada)}</dd></div>
+            <div><dt>Parcelas</dt><dd>${esc(c.parcelas)}x ${fmtBRL(c.valor_parcela)}</dd></div>
+            <div><dt>Saldo devedor</dt><dd>${fmtBRL(c.saldo_devedor)}</dd></div>
+            <div><dt>Administradora</dt><dd>${esc(c.administradora)}</dd></div>
+          </dl>
+          ${botaoZap(c)}
+        </div>`).join("");
+    }
+
+    document.getElementById("abas").addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      segmento = b.dataset.seg;
+      document.querySelectorAll("#abas button").forEach(x => x.classList.toggle("ativo", x === b));
+      try { history.replaceState(null, "", segmento === "todos" ? location.pathname : `?segmento=${segmento}`); } catch {}
+      render();
+    });
+    document.getElementById("busca").addEventListener("input", render);
+    document.getElementById("ordem").addEventListener("change", render);
+    document.querySelectorAll("#abas button").forEach(x => x.classList.toggle("ativo", x.dataset.seg === segmento));
+
+    DB.listar({ publico: true })
+      .then(d => { cartas = d; render(); })
+      .catch(() => { document.getElementById("vazio").hidden = false; document.getElementById("vazio").textContent = "Não foi possível carregar as cartas agora."; });
+  </script>
+</body>
+</html>
