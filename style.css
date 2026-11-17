@@ -99,3 +99,30 @@ dialog h3 { margin: 0 0 6px; }
 .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
 @media (max-width: 560px) { .grade { grid-template-columns: 1fr; } }
 .rodape-dialog { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+/* Logos das administradoras */
+.adm { display: inline-flex; align-items: center; gap: 10px; }
+.logo-adm { width: 64px; height: 28px; object-fit: contain; flex-shrink: 0; }
+.logo-adm.sem-logo { width: 28px; border-radius: 50%; background: #e8eef7; color: var(--azul-2); font-size: .7rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+.card .card-logo .logo-adm { width: 90px; height: 32px; }
+.card .card-logo .logo-adm.sem-logo { width: 32px; }
+.card .linha1 .esq-card { display: flex; flex-direction: column; gap: 6px; }
+
+/* Admin: abas e administradoras */
+.abas-admin { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid var(--borda); }
+.abas-admin button { border: 0; background: transparent; padding: 10px 16px; font-weight: 700; color: var(--cinza); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; font-size: .95rem; }
+.abas-admin button.ativo { color: var(--azul); border-bottom-color: var(--dourado); }
+.form-adm { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; background: var(--fundo); padding: 14px; border-radius: var(--raio); margin-bottom: 16px; }
+.form-adm > div { flex: 1; min-width: 180px; }
+.form-adm label { margin-top: 0; }
+.preview-logo { width: 120px; height: 48px; background: #fff; border: 1px dashed var(--borda); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--cinza); font-size: .75rem; flex: 0 0 120px !important; min-width: 0 !important; }
+.preview-logo img { max-width: 110px; max-height: 40px; object-fit: contain; }
+.grade-adms { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.item-adm { border: 1px solid var(--borda); border-radius: var(--raio); padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.item-adm .logo-adm { width: 140px; height: 56px; }
+.item-adm .logo-adm.sem-logo { width: 56px; font-size: 1rem; }
+.item-adm .nome { font-weight: 700; }
+.item-adm .acoes { justify-content: center; }
+.seletor-adm { display: flex; align-items: center; gap: 10px; }
+.seletor-adm select { flex: 1; }
+.seletor-adm .logo-adm { width: 70px; height: 32px; }
