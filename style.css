@@ -56,6 +56,11 @@ tr:hover td { background: #fafbfd; }
 .btn-claro { background: var(--fundo); color: var(--texto); }
 .btn-perigo { background: #fde8e8; color: var(--vermelho); }
 .btn-dourado { background: var(--dourado); color: var(--azul); }
+.btn-entrar { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.35); }
+.btn-entrar:hover { border-color: var(--dourado); color: var(--dourado); }
+.btn-entrar { white-space: nowrap; }
+.txt-curto { display: none; }
+@media (max-width: 480px) { .txt-longo { display: none; } .txt-curto { display: inline; } }
 
 /* Cards no celular */
 .cards { display: none; }
