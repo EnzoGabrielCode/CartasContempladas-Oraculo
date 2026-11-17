@@ -11,11 +11,14 @@
   <div id="avisoDemo" class="aviso-demo" hidden>Modo demonstração — senha: <b>demo</b></div>
   <header class="topo">
     <div class="wrap">
-      <div class="marca">Oráculo <span>Admin</span></div>
-      <div class="acoes" id="topoAcoes" hidden>
-        <a class="btn btn-claro" href="index.html" target="_blank">Ver site</a>
-        <button class="btn btn-dourado" id="sair">Sair</button>
+      <div class="esq">
+        <a class="btn btn-entrar" href="index.html">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar ao site
+        </a>
+        <div class="marca">Oráculo <span>Admin</span></div>
       </div>
+      <button class="btn btn-dourado" id="sair" hidden>Sair</button>
     </div>
   </header>
 
@@ -110,7 +113,7 @@
       const ok = await DB.logado();
       $("telaLogin").hidden = ok;
       $("telaPainel").hidden = !ok;
-      $("topoAcoes").hidden = !ok;
+      $("sair").hidden = !ok;
       if (ok) carregar();
     }
 
