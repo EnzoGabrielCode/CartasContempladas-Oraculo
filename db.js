@@ -17,17 +17,33 @@
   const loadAdms = () => { try { return JSON.parse(localStorage.getItem(ADM_KEY)) || seedAdms; } catch { return seedAdms; } };
   const storeAdms = (d) => { try { localStorage.setItem(ADM_KEY, JSON.stringify(d)); } catch {} };
 
-  // Reduz a imagem (máx. 400x160) para o site carregar rápido. SVG passa direto.
+  // Corta as bordas vazias (brancas ou transparentes) da logo e reduz para no máx. 600x240.
+  // Assim a logo ocupa todo o espaço disponível no site. SVG passa direto.
   function redimensionar(file) {
     if (file.type === "image/svg+xml") return Promise.resolve(file);
     return new Promise((ok, erro) => {
       const img = new Image();
       img.onload = () => {
-        const fator = Math.min(1, 400 / img.width, 160 / img.height);
+        const f0 = Math.min(1, 1600 / img.width, 1600 / img.height);
+        const w = Math.round(img.width * f0), h = Math.round(img.height * f0);
+        const tmp = document.createElement("canvas");
+        tmp.width = w; tmp.height = h;
+        const ctx = tmp.getContext("2d", { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0, w, h);
+        const px = ctx.getImageData(0, 0, w, h).data;
+        let x0 = w, y0 = h, x1 = -1, y1 = -1;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          const vazio = px[i + 3] < 16 || (px[i] > 245 && px[i + 1] > 245 && px[i + 2] > 245);
+          if (!vazio) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        }
+        if (x1 < 0) { x0 = 0; y0 = 0; x1 = w - 1; y1 = h - 1; } // imagem toda vazia: não corta
+        const cw = x1 - x0 + 1, ch = y1 - y0 + 1;
+        const f = Math.min(1, 600 / cw, 240 / ch);
         const c = document.createElement("canvas");
-        c.width = Math.round(img.width * fator); c.height = Math.round(img.height * fator);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        c.toBlob(b => b ? ok(b) : erro(new Error("Imagem inválida")), "image/webp", 0.9);
+        c.width = Math.round(cw * f); c.height = Math.round(ch * f);
+        c.getContext("2d").drawImage(tmp, x0, y0, cw, ch, 0, 0, c.width, c.height);
+        c.toBlob(b => b ? ok(b) : erro(new Error("Imagem inválida")), "image/webp", 0.92);
         URL.revokeObjectURL(img.src);
       };
       img.onerror = () => erro(new Error("Não foi possível ler a imagem"));
